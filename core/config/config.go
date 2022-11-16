@@ -14,29 +14,32 @@
 
 // Package config is used to parse config.
 // Usage:
-//  import "github.com/beego/beego/v2/core/config"
+//
+//	import "github.com/beego/beego/v2/core/config"
+//
 // Examples.
 //
-//  cnf, err := config.NewConfig("ini", "config.conf")
+//	cnf, err := config.NewConfig("ini", "config.conf")
 //
-//  cnf APIS:
+//	cnf APIS:
 //
-//  cnf.Set(key, val string) error
-//  cnf.String(key string) string
-//  cnf.Strings(key string) []string
-//  cnf.Int(key string) (int, error)
-//  cnf.Int64(key string) (int64, error)
-//  cnf.Bool(key string) (bool, error)
-//  cnf.Float(key string) (float64, error)
-//  cnf.DefaultString(key string, defaultVal string) string
-//  cnf.DefaultStrings(key string, defaultVal []string) []string
-//  cnf.DefaultInt(key string, defaultVal int) int
-//  cnf.DefaultInt64(key string, defaultVal int64) int64
-//  cnf.DefaultBool(key string, defaultVal bool) bool
-//  cnf.DefaultFloat(key string, defaultVal float64) float64
-//  cnf.DIY(key string) (interface{}, error)
-//  cnf.GetSection(section string) (map[string]string, error)
-//  cnf.SaveConfigFile(filename string) error
+//	cnf.Set(key, val string) error
+//	cnf.String(key string) string
+//	cnf.Strings(key string) []string
+//	cnf.Int(key string) (int, error)
+//	cnf.Int64(key string) (int64, error)
+//	cnf.Bool(key string) (bool, error)
+//	cnf.Float(key string) (float64, error)
+//	cnf.DefaultString(key string, defaultVal string) string
+//	cnf.DefaultStrings(key string, defaultVal []string) []string
+//	cnf.DefaultInt(key string, defaultVal int) int
+//	cnf.DefaultInt64(key string, defaultVal int64) int64
+//	cnf.DefaultBool(key string, defaultVal bool) bool
+//	cnf.DefaultFloat(key string, defaultVal float64) float64
+//	cnf.DIY(key string) (interface{}, error)
+//	cnf.GetSection(section string) (map[string]string, error)
+//	cnf.SaveConfigFile(filename string) error
+//
 // More docs http://beego.vip/docs/module/config.md
 package config
 
@@ -52,7 +55,7 @@ import (
 )
 
 // Configer defines how to get and set value from configuration raw data.
-type Configer interface {
+type Configer interface { //此接口定义了一个配置容器的抽象,需要满足一系列获取配置的方法
 	// Set support section::key type in given key when using ini type.
 	Set(key, val string) error
 
@@ -84,6 +87,7 @@ type Configer interface {
 	SaveConfigFile(filename string) error
 }
 
+// BaseConfiger 作为一个基类,抽出一部分公共的简单方法,便于实现configer接口,其reader字段是各种不同实现(如etcd或其他)从中操作数据的方法
 type BaseConfiger struct {
 	// The reader should support key like "a.b.c"
 	reader func(ctx context.Context, key string) (string, error)
@@ -196,17 +200,17 @@ func (*BaseConfiger) OnChange(_ string, _ func(value string)) {
 }
 
 // Config is the adapter interface for parsing config file to get raw data to Configer.
-type Config interface {
+type Config interface { //对于多种格式的配置文件的抽象,如ini,toml,json等,都具有Parse方法,能够将文件解析,并最终写入到Configer中
 	Parse(key string) (Configer, error)
 	ParseData(data []byte) (Configer, error)
 }
 
-var adapters = make(map[string]Config)
+var adapters = make(map[string]Config) //容纳多种解析器(默认会注册ini),解析器解析文件后能够产生Configer
 
 // Register makes a config adapter available by the adapter name.
 // If Register is called twice with the same name or if driver is nil,
 // it panics.
-func Register(name string, adapter Config) {
+func Register(name string, adapter Config) { //所有的解析器都通过init的形式调用此函数,注册到adapters 这个map中
 	if adapter == nil {
 		panic("config: Register adapter is nil")
 	}
@@ -218,12 +222,12 @@ func Register(name string, adapter Config) {
 
 // NewConfig adapterName is ini/json/xml/yaml.
 // filename is the config file path.
-func NewConfig(adapterName, filename string) (Configer, error) {
+func NewConfig(adapterName, filename string) (Configer, error) { //如果不想要使用web中全局的变量,则需要调用此方法进行解析,获得Configer
 	adapter, ok := adapters[adapterName]
 	if !ok {
 		return nil, fmt.Errorf("config: unknown adaptername %q (forgotten import?)", adapterName)
 	}
-	return adapter.Parse(filename)
+	return adapter.Parse(filename) //调用config的实现,的Parse方法解析文件
 }
 
 // NewConfigData adapterName is ini/json/xml/yaml.
@@ -267,6 +271,7 @@ func ExpandValueEnvForMap(m map[string]interface{}) map[string]interface{} {
 //
 // It accept value formats "${env}" , "${env||}}" , "${env||defaultValue}" , "defaultvalue".
 // Examples:
+//
 //	v1 := config.ExpandValueEnv("${GOPATH}")			// return the GOPATH environment variable.
 //	v2 := config.ExpandValueEnv("${GOAsta||/usr/local/go}")	// return the default value "/usr/local/go/".
 //	v3 := config.ExpandValueEnv("Astaxie")				// return the value "Astaxie".

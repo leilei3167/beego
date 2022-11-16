@@ -437,11 +437,11 @@ type LogConfig struct {
 	Outputs map[string]string // Store Adaptor : config
 }
 
-var (
+var ( //全局的配置变量
 	// BConfig is the default config for Application
-	BConfig *Config
+	BConfig *Config //主要是web服务所需的配置,直接调用Run时,会使用BConfig来创建HTTPServer
 	// AppConfig is the instance of Config, store the config information from file
-	AppConfig *beegoAppConfig
+	AppConfig *beegoAppConfig //主要是运行时程序的自定义配置;解析配置文件后的运行时配置,持有configer,configer会首先从adapters中获取指定文件的解析器,解析后将配置存放到指定的configer中,之后便可通过此全局变量使用
 	// AppPath is the absolute path to the app
 	AppPath string
 	// GlobalSessions is the instance for the session manager
@@ -455,7 +455,7 @@ var (
 	WorkPath string
 )
 
-func init() {
+func init() { //在导入此包时初始化,将读取配置文件并写入到全局的配置中
 	BConfig = newBConfig()
 	var err error
 	if AppPath, err = filepath.Abs(filepath.Dir(os.Args[0])); err != nil {
@@ -465,20 +465,21 @@ func init() {
 	if err != nil {
 		panic(err)
 	}
-	filename := "app.conf"
+	filename := "app.conf" //默认的配置文件名称
 	if os.Getenv("BEEGO_RUNMODE") != "" {
 		filename = os.Getenv("BEEGO_RUNMODE") + ".app.conf"
 	}
-	appConfigPath = filepath.Join(WorkPath, "conf", filename)
+	appConfigPath = filepath.Join(WorkPath, "conf", filename) //工作目录下的 conf文件夹
 	if !utils.FileExists(appConfigPath) {
-		appConfigPath = filepath.Join(AppPath, "conf", filename)
-		if !utils.FileExists(appConfigPath) {
+		appConfigPath = filepath.Join(AppPath, "conf", filename) //如果工作路径不存在配置文件,则在app所在的目录下查找
+		if !utils.FileExists(appConfigPath) {                    //说明没有设置配置文件,设置fake Configer占位,BConfig是默认值
 			AppConfig = &beegoAppConfig{innerConfig: config.NewFakeConfig()}
 			return
 		}
 	}
-	if err = parseConfig(appConfigPath); err != nil {
-		panic(err)
+	//有配置文件则读取写入
+	if err = parseConfig(appConfigPath); err != nil { //从已注册的配置文件解析器中取出一个,进行配置文件的解析(默认ini一定会注册,如果需要解析其他格式,必须通过_ 导包来注册)
+		panic(err) //此处读取配置文件写入全局结构体,并根据配置初始化logger
 	}
 }
 
@@ -608,7 +609,7 @@ func parseConfig(appConfigPath string) (err error) {
 	if err != nil {
 		return err
 	}
-	return assignConfig(AppConfig)
+	return assignConfig(AppConfig) //应用配置
 }
 
 // assignConfig is tricky.
@@ -617,14 +618,14 @@ func parseConfig(appConfigPath string) (err error) {
 func assignConfig(ac config.Configer) error {
 	parseConfigForV1(ac)
 
-	err := ac.Unmarshaler("", BConfig)
+	err := ac.Unmarshaler("", BConfig) //写入覆盖默认的配置文件中
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, fmt.Sprintf("Unmarshaler config file to BConfig failed. "+
 			"And if you are working on v1.x config file, please ignore this, err: %s", err))
 		return err
 	}
 
-	// init log
+	// init log,初始化一个基本的logger
 	logs.Reset()
 	for adaptor, cfg := range BConfig.Log.Outputs {
 		err := logs.SetLogger(adaptor, cfg)
@@ -752,16 +753,16 @@ func LoadAppConfig(adapterName, configPath string) error {
 }
 
 type beegoAppConfig struct {
-	config.BaseConfiger
-	innerConfig config.Configer
+	config.BaseConfiger //继承基类的重复的方法,快速实现接口
+	innerConfig         config.Configer
 }
 
 func newAppConfig(appConfigProvider, appConfigPath string) (*beegoAppConfig, error) {
-	ac, err := config.NewConfig(appConfigProvider, appConfigPath)
+	ac, err := config.NewConfig(appConfigProvider, appConfigPath) //获取解析器并解析成Configer返回
 	if err != nil {
 		return nil, err
 	}
-	return &beegoAppConfig{innerConfig: ac}, nil
+	return &beegoAppConfig{innerConfig: ac}, nil //默认注入ini的实现(IniConfig),解析后将配置 存入IniConfigContainer(实现configer接口) 后返回
 }
 
 func (b *beegoAppConfig) Unmarshaler(prefix string, obj interface{}, opt ...config.DecodeOption) error {

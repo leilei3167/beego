@@ -14,6 +14,8 @@
 
 package config
 
+// ini文件解析器一定会被注册到adapters,且其是被作为默认的解析器
+
 import (
 	"bufio"
 	"bytes"
