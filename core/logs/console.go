@@ -77,7 +77,7 @@ func NewConsole() Logger {
 func newConsole() *consoleWriter {
 	cw := &consoleWriter{
 		lg:       newLogWriter(ansicolor.NewAnsiColorWriter(os.Stdout)),
-		Level:    LevelDebug,
+		Level:    LevelDebug, //默认的console日志是最低的Debug级别,注意会产生大量的冗余数据
 		Colorful: true,
 	}
 	cw.formatter = cw
@@ -121,5 +121,5 @@ func (c *consoleWriter) Flush() {
 }
 
 func init() {
-	Register(AdapterConsole, NewConsole)
+	Register(AdapterConsole, NewConsole) //注册的是debug级别的logger
 }

@@ -595,7 +595,7 @@ func newBConfig() *Config {
 			EnableStaticLogs: false,
 			AccessLogsFormat: "APACHE_FORMAT",
 			FileLineNum:      true,
-			Outputs:          map[string]string{"console": ""},
+			Outputs:          map[string]string{"console": ""}, //默认只输出至终端
 		},
 	}
 
@@ -627,8 +627,8 @@ func assignConfig(ac config.Configer) error {
 
 	// init log,初始化一个基本的logger
 	logs.Reset()
-	for adaptor, cfg := range BConfig.Log.Outputs {
-		err := logs.SetLogger(adaptor, cfg)
+	for adaptor, cfg := range BConfig.Log.Outputs { //此logger可以输出至多个下游,如终端,文件等
+		err := logs.SetLogger(adaptor, cfg) //一个下游对应一个logger
 		if err != nil {
 			fmt.Fprintln(os.Stderr, fmt.Sprintf("%s with the config %q got err:%s", adaptor, cfg, err.Error()))
 			return err
